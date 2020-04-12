@@ -1,5 +1,5 @@
 import {fromEvent, merge, BehaviorSubject} from 'rxjs'
-import {map, mapTo, tap, switchMap, switchMapTo} from 'rxjs/operators'
+import {map, mapTo, tap, switchMap, switchMapTo, withLatestFrom} from 'rxjs/operators'
 
 import {buildUlList, replaceListItems} from 'renderer/dom'
 
@@ -9,7 +9,9 @@ import {
   connectedToPort$,
   connectToPort,
   portConnectionError$,
-  portMessage$
+  portMessage$,
+  disconnectPort,
+  disconnectedPort$
 } from 'renderer/ipc-bindings'
 
 import {showErrorInModal} from './error-modal'
@@ -28,12 +30,20 @@ export const setupSerialList = () => {
   const serialList = document.getElementById('serial-list') as HTMLOListElement
   const fetchSerialButton = document.getElementById('fetch-serial') as HTMLElement
   const serialPortLoading = document.getElementById('serial-port-loading') as HTMLElement
+  const disconnectPortButton = document.getElementById('serial-port-disconnect') as HTMLElement
 
   const selectedPort$ = new BehaviorSubject<string | null>(null)
 
   fromEvent(fetchSerialButton, 'click')
     .pipe(tap(() => fetchSerialButton.innerText = 'Refresh Devices'))
     .subscribe(fetchPorts)
+
+  fromEvent(disconnectPortButton, 'click')
+    .pipe(withLatestFrom(selectedPort$))
+    .subscribe(([, port]) => {
+      if (port)
+        disconnectPort(port)
+    })
 
   loadedPorts$
     .pipe(
@@ -46,15 +56,19 @@ export const setupSerialList = () => {
   selectedPort$
     .asObservable()
     .subscribe((port) => {
+      const isPortSelected = !!port
       if (port) {
         currentPort.innerText = `Selected Port: ${port}`
         serialPortLoading.hidden = false
 
         connectToPort(port)
+      } else {
+        currentPort.innerText = ''
       }
 
-      findSerialContainer.hidden = !!port
-      serialSelectedContainer.hidden = !port
+      findSerialContainer.hidden = isPortSelected
+      disconnectPortButton.hidden = !isPortSelected
+      serialSelectedContainer.hidden = !isPortSelected
     })
 
   connectedToPort$
@@ -64,13 +78,13 @@ export const setupSerialList = () => {
     )
     .subscribe((message) => console.log('got message', message))
 
-  portConnectionError$
-    .pipe(
-      tap((error) => {
-        serialPortLoading.hidden = true
-        showErrorInModal(error, 'Connection Error')
-      }),
-      mapTo(null)
-    )
+  disconnectedPort$
+    .pipe(mapTo(null))
     .subscribe(selectedPort$)
+
+  portConnectionError$
+    .subscribe((error) => {
+      serialPortLoading.hidden = true
+      showErrorInModal(error, 'Connection Error')
+    })
 }

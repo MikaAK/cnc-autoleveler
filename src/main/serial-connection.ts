@@ -4,7 +4,7 @@ import
 from 'serialport'
 
 import {Observable, from, fromEvent} from 'rxjs'
-import {map} from 'rxjs/operators'
+import {map, debounceTime} from 'rxjs/operators'
 
 const Binding = <unknown>dumbBinding as {list: () => Promise<PortInfo[]>}
 
@@ -49,7 +49,7 @@ export const connectToSerialPort = (port: string, config: OpenOptions = {}) => {
 
   const serialPort = new SerialPort(port, {...config, autoOpen: false, baudRate: 115200})
 
-  return new Observable<SerialPortControl>((observer) => {
+  const serialPort$ = new Observable<SerialPortControl>((observer) => {
     serialPort.open((err) => {
       if (err) {
         console.error('SerialPort Error', err)
@@ -57,15 +57,22 @@ export const connectToSerialPort = (port: string, config: OpenOptions = {}) => {
         observer.error(err)
       }
 
+      const read$ = fromEvent<Buffer>(serialPort, 'data')
+        .pipe(
+          // Due to button debouncing not working for pullup buttons
+          // introduce a sofftware debounce
+          debounceTime(20),
+          map((buffer) => buffer.toString())
+        )
+
       observer.next({
         port,
-        read$: fromEvent<string>(serialPort, 'data'),
+        read$,
 
         write(str: string) {
           return serialPort.write(str)
         }
       })
-      observer.complete()
     })
 
     return () => {
@@ -73,4 +80,6 @@ export const connectToSerialPort = (port: string, config: OpenOptions = {}) => {
         serialPort.close()
     }
   })
+
+  return serialPort$
 }
