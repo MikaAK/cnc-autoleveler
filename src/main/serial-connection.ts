@@ -1,6 +1,9 @@
-import SerialPort, {Binding as dumbBinding, PortInfo} from 'serialport'
+import
+  SerialPort,
+  {Binding as dumbBinding, PortInfo, OpenOptions}
+from 'serialport'
 
-import {from} from 'rxjs'
+import {Observable, from, fromEvent} from 'rxjs'
 import {map} from 'rxjs/operators'
 
 const Binding = <unknown>dumbBinding as {list: () => Promise<PortInfo[]>}
@@ -24,3 +27,35 @@ const byManifacture = (portA: PortInfo, _portB: PortInfo) =>
 export const listSerialPorts = () => from(Binding.list())
   .pipe(map((ports) =>
     (<unknown>ports as PortInfo[]).sort(byManifacture).map(humanizePortObject)))
+
+export type SerialPortControl = {
+  port: string
+  read$: Observable<string>,
+  write: (str: string) => boolean
+}
+
+export const connectToSerialPort = (port: string, config: OpenOptions = {}) => {
+  const serialPort = new SerialPort(port, {...config, autoOpen: false})
+
+  return new Observable<SerialPortControl>((observer) => {
+    serialPort.open((err) => {
+      if (err)
+        observer.error(err)
+
+      observer.next({
+        port,
+        read$: fromEvent<string>(serialPort, 'data'),
+
+        write(str: string) {
+          return serialPort.write(str)
+        }
+      })
+      observer.complete()
+    })
+
+    return () => {
+      if (serialPort.isOpen)
+        serialPort.close()
+    }
+  })
+}

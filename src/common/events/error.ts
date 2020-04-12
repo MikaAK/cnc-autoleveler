@@ -1,1 +1,1 @@
-export const MAIN_ERROR = 'MAIN_ERROR'
+export const MAIN_ERROR = '[ERROR] MAIN_ERROR'

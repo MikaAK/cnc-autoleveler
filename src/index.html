@@ -12,7 +12,7 @@
       <p>This tool is built to auto level pcbs using a external probe that can be setup with arduino</p>
     </div>
 
-    <div>
+    <div id='find-serial'>
       <h5>First we need to find your your external probe:</h5>
 
       <button id='fetch-serial'>
@@ -21,6 +21,11 @@
 
       <ol id='serial-list'>
       </ol>
+    </div>
+
+    <div id='serial-selected' hidden>
+      <span id='current-serial-port'></span>
+      <span id='serial-port-loading' hidden>Loading...</span>
     </div>
 
     <div class='modal micromodal-slide' id='modal' aria-hidden='true'>
