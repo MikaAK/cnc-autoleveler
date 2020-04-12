@@ -1,0 +1,9 @@
+a {
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .2s ease-in-out;
+
+  &:hover, &:focus, &:active {
+    outline: none;
+  }
+}

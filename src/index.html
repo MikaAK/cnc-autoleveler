@@ -16,11 +16,41 @@
       <h5>First we need to find your your external probe:</h5>
 
       <button id='fetch-serial'>
-        Fetch Serial Info
+        Fetch Devices
       </button>
 
       <ol id='serial-list'>
       </ol>
+    </div>
+
+    <div class='modal micromodal-slide' id='modal' aria-hidden='true'>
+      <!-- [2] -->
+      <div class='modal__overlay' tabindex='-1' data-micromodal-close>
+        <!-- [3] -->
+        <div
+          class='modal__container'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='modal-title'
+        >
+          <header class='modal__header'>
+            <h2 class='modal__title' id='modal-title'>
+              Modal Title
+            </h2>
+
+            <!-- [4] -->
+            <button
+              class='modal__close'
+              aria-label='Close modal'
+              data-micromodal-close
+            ></button>
+          </header>
+
+          <div class='modal__content' id='modal-content'>
+            Modal Content
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

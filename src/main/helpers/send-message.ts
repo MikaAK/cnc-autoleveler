@@ -1,5 +1,10 @@
 import {BrowserWindow} from 'electron'
 
-export const sendMessage = (window: BrowserWindow) =>
-  (action: string) =>
-    (data: any) => { window.webContents.send(action, data) })
+export type SendMessageFunction = (action: string) => (data: any) => void
+
+export const sendMessage = (window: BrowserWindow): SendMessageFunction =>
+  (action: string) => <T>(data: T) => {
+    console.debug(`Event: ${action}`, data)
+
+    window.webContents.send(action, data)
+  })
