@@ -7,6 +7,8 @@ export type IPCObservable = <T>(eventName: string) => Observable<IPCEvent<T>>
 
 export const createIpcOn = (ipc: any): IPCObservable => <T>(eventName: string) => new Observable<IPCEvent<T>>((observer) => {
   const callback = (event: Event, arg: T) => {
+    console.debug(`Recieved ${eventName}`, arg)
+
     observer.next({event, arg})
   }
 
