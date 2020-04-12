@@ -21,8 +21,16 @@ export const createSerialConnection = (port: string, config = DEFAULTS) =>
 const humanizePortObject = (port: PortInfo) =>
   port.manufacturer ? `${port.manufacturer} - ${port.path}` : port.path
 
-const byManifacture = (portA: PortInfo, _portB: PortInfo) =>
-  portA.manufacturer ? 1 : 0)
+const byManifacture = (portA: PortInfo, portB: PortInfo) => {
+  const bothHaveManifacturer = portA.manufacturer && portB.manufacturer
+  if (bothHaveManifacturer || (!portA.manufacturer && !portB.manufacturer)) {
+    return 0
+  } else if (portA.manufacturer) {
+    return -1
+  } else {
+    return 1
+  }
+}
 
 export const listSerialPorts = () => from(Binding.list())
   .pipe(map((ports) =>
@@ -34,13 +42,20 @@ export type SerialPortControl = {
   write: (str: string) => boolean
 }
 
+const removeManifacturerPrefix = (port: string) => (port.match(/(?:[ ]+)?([^\ ]+)$/) as string[])[1]
+
 export const connectToSerialPort = (port: string, config: OpenOptions = {}) => {
-  const serialPort = new SerialPort(port, {...config, autoOpen: false})
+  port = removeManifacturerPrefix(port)
+
+  const serialPort = new SerialPort(port, {...config, autoOpen: false, baudRate: 115200})
 
   return new Observable<SerialPortControl>((observer) => {
     serialPort.open((err) => {
-      if (err)
+      if (err) {
+        console.error('SerialPort Error', err)
+
         observer.error(err)
+      }
 
       observer.next({
         port,
