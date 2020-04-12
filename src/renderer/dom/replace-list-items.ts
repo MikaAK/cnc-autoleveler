@@ -4,9 +4,12 @@ export const replaceListItems = (
   list: HTMLUListElement | HTMLOListElement,
   liItems: HTMLLIElement[]
 ) => {
-  clearChildren(list)
+  const fragment = document.createDocumentFragment()
 
-  liItems.map(item => list.append(item))
+  liItems.forEach(item => fragment.append(item))
+
+  clearChildren(list)
+  list.append(fragment)
 
   return list
 }
