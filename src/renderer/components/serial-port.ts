@@ -1,7 +1,7 @@
 import {fromEvent, merge, BehaviorSubject, Observable} from 'rxjs'
 import {map, mapTo, tap, switchMap, shareReplay, withLatestFrom} from 'rxjs/operators'
 
-import {buildUlList, replaceListItems} from 'renderer/dom'
+import {buildUlList, replaceListItems, setText} from 'renderer/dom'
 
 import {
   fetchPorts,
@@ -27,7 +27,7 @@ const isProbeTouching = (event: string) =>
   event === 'PROBE_CONNECTED'
 
 export const onFetchSerialButton = (button: HTMLElement) => fromEvent(button, 'click')
-  .pipe(tap(() => button.innerText = 'Refresh Devices'))
+  .pipe(tap(() => setText(button, 'Refresh Devices')))
 
 export const onDisconnectPortButtonClick = (
   button: HTMLElement,
@@ -71,13 +71,13 @@ export const setupSerialList = () => {
     .subscribe((port) => {
       const isPortSelected = !!port
       if (port) {
-        currentPort.innerText = `Selected Port: ${port}`
+        setText(currentPort, `Selected Port: ${port}`)
         serialPortLoading.hidden = false
 
         connectToPort(port)
       } else {
-        currentPort.innerText = ''
-        probeStatus.innerText = ''
+        setText(currentPort, '')
+        setText(probeStatus, '')
       }
 
       findSerialContainer.hidden = isPortSelected
@@ -104,7 +104,7 @@ export const setupSerialList = () => {
     )
 
   isProbeTouching$.subscribe((isTouching) => {
-    probeStatus.innerText = isTouching ? 'Probe Touching' : 'Probe Not Touching'
+    setText(probeStatus, isTouching ? 'Probe Touching' : 'Probe Not Touching')
   })
 
   return isProbeTouching$
