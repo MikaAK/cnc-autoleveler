@@ -88,6 +88,7 @@
   },
   "dependencies": {
     "@types/ramda": "^0.27.3",
+    "cnctosvg": "^1.0.4",
     "electron-squirrel-startup": "^1.0.0",
     "micromodal": "^0.4.6",
     "ramda": "^0.27.0",

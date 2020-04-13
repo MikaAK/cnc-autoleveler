@@ -1,5 +1,5 @@
-import {fromEvent, merge, BehaviorSubject} from 'rxjs'
-import {map, mapTo, tap, switchMap, switchMapTo, withLatestFrom} from 'rxjs/operators'
+import {fromEvent, merge, BehaviorSubject, Observable} from 'rxjs'
+import {map, mapTo, tap, switchMap, shareReplay, withLatestFrom} from 'rxjs/operators'
 
 import {buildUlList, replaceListItems} from 'renderer/dom'
 
@@ -23,6 +23,28 @@ const listenForClick = (liItems: HTMLLIElement[]) => {
   return merge(...itemClicks)
 }
 
+const isProbeTouching = (event: string) =>
+  event === 'PROBE_CONNECTED'
+
+export const onFetchSerialButton = (button: HTMLElement) => fromEvent(button, 'click')
+  .pipe(tap(() => button.innerText = 'Refresh Devices'))
+
+export const onDisconnectPortButtonClick = (
+  button: HTMLElement,
+  selectedPort$: Observable<string | null>
+) => fromEvent(button, 'click')
+  .pipe(withLatestFrom(selectedPort$))
+
+export const onPortSelection = (
+  loadedPorts$: Observable<string[]>,
+  serialList: HTMLOListElement
+) => loadedPorts$
+  .pipe(
+    map(buildUlList),
+    tap((portLiItems) => replaceListItems(serialList, portLiItems)),
+    switchMap(listenForClick)
+  )
+
 export const setupSerialList = () => {
   const findSerialContainer = document.getElementById('find-serial') as HTMLElement
   const serialSelectedContainer = document.getElementById('serial-selected') as HTMLElement
@@ -31,27 +53,18 @@ export const setupSerialList = () => {
   const fetchSerialButton = document.getElementById('fetch-serial') as HTMLElement
   const serialPortLoading = document.getElementById('serial-port-loading') as HTMLElement
   const disconnectPortButton = document.getElementById('serial-port-disconnect') as HTMLElement
+  const probeStatus = document.getElementById('probe-status') as HTMLElement
 
   const selectedPort$ = new BehaviorSubject<string | null>(null)
 
-  fromEvent(fetchSerialButton, 'click')
-    .pipe(tap(() => fetchSerialButton.innerText = 'Refresh Devices'))
-    .subscribe(fetchPorts)
-
-  fromEvent(disconnectPortButton, 'click')
-    .pipe(withLatestFrom(selectedPort$))
+  onDisconnectPortButtonClick(disconnectPortButton, selectedPort$)
     .subscribe(([, port]) => {
       if (port)
         disconnectPort(port)
     })
 
-  loadedPorts$
-    .pipe(
-      map(buildUlList),
-      tap((portLiItems) => replaceListItems(serialList, portLiItems)),
-      switchMap(listenForClick)
-    )
-    .subscribe(selectedPort$)
+  onFetchSerialButton(fetchSerialButton).subscribe(fetchPorts)
+  onPortSelection(loadedPorts$, serialList).subscribe(selectedPort$)
 
   selectedPort$
     .asObservable()
@@ -64,6 +77,7 @@ export const setupSerialList = () => {
         connectToPort(port)
       } else {
         currentPort.innerText = ''
+        probeStatus.innerText = ''
       }
 
       findSerialContainer.hidden = isPortSelected
@@ -71,12 +85,7 @@ export const setupSerialList = () => {
       serialSelectedContainer.hidden = !isPortSelected
     })
 
-  connectedToPort$
-    .pipe(
-      tap(() => serialPortLoading.hidden = true),
-      switchMapTo(portMessage$)
-    )
-    .subscribe((message) => console.log('got message', message))
+  connectedToPort$.subscribe(() => serialPortLoading.hidden = true)
 
   disconnectedPort$
     .pipe(mapTo(null))
@@ -87,4 +96,16 @@ export const setupSerialList = () => {
       serialPortLoading.hidden = true
       showErrorInModal(error, 'Connection Error')
     })
+
+  const isProbeTouching$ = portMessage$
+    .pipe(
+      map(isProbeTouching),
+      shareReplay(1)
+    )
+
+  isProbeTouching$.subscribe((isTouching) => {
+    probeStatus.innerText = isTouching ? 'Probe Touching' : 'Probe Not Touching'
+  })
+
+  return isProbeTouching$
 }
